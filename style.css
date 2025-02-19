@@ -1,0 +1,131 @@
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background: #1e1e1e;
+    color: #fff;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.player-container {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #2d2d2d;
+    color: #fff;
+}
+
+button {
+    padding: 10px 20px;
+    background: #4d9bd6;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+button:hover {
+    background: #3d8bc6;
+}
+
+.status {
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.status.success {
+    background: #1e3323;
+    color: #2ea043;
+}
+
+.status.error {
+    background: #332323;
+    color: #f85149;
+}
+
+/* Video.js özelleştirmeleri */
+.video-js {
+    width: 100%;
+    height: 100%;
+}
+
+.vjs-default-skin {
+    border-radius: 8px;
+}
+
+/* Proxy seçici için stil */
+#proxySelect {
+    padding: 10px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #2d2d2d;
+    color: #fff;
+    cursor: pointer;
+}
+
+#proxySelect:hover {
+    border-color: #4d9bd6;
+}
+
+#proxySelect option {
+    background: #2d2d2d;
+    color: #fff;
+    padding: 8px;
+}
+
+/* Video player için ek stiller */
+video {
+    width: 100%;
+    height: 100%;
+    background: #000;
+}
+
+/* iframe için stil güncellemesi */
+iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #000;
+}
+
+/* Player seçici için stil */
+#playerType {
+    padding: 10px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #2d2d2d;
+    color: #fff;
+    cursor: pointer;
+}
+
+#playerType:hover {
+    border-color: #4d9bd6;
+}
+
+#playerType option {
+    background: #2d2d2d;
+    color: #fff;
+    padding: 8px;
+} 
