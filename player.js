@@ -82,24 +82,24 @@ function getCustomHeaders() {
 }
 
 function getProxyUrl(url) {
-    // En güvenilir ve hızlı proxy'leri seçelim
+    // Daha güvenilir proxy'ler
     const proxyServices = [
-        'https://cors.streamlock.net/',
-        'https://api.cors.dev/',
-        'https://corsproxy.org/',
-        'https://cors.kurisu.dev/'
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        `https://cors.eu.org/${url}`
     ];
     
-    // Proxy'leri sırayla deneyelim
     let proxyIndex = 0;
     
     function tryNextProxy() {
         if (proxyIndex >= proxyServices.length) {
             console.error('Hiçbir proxy çalışmadı');
-            return url; // En son orijinal URL'e dön
+            return url;
         }
         
-        const proxyUrl = proxyServices[proxyIndex] + url;
+        const proxyUrl = proxyServices[proxyIndex];
+        console.log(`Proxy ${proxyIndex + 1} deneniyor:`, proxyUrl);
         proxyIndex++;
         return proxyUrl;
     }
@@ -110,13 +110,15 @@ function getProxyUrl(url) {
 function initHlsPlayer(url, video, status) {
     if (Hls.isSupported()) {
         const hls = new Hls({
-            debug: false,
+            debug: true, // Hata ayıklama için açalım
             enableWorker: true,
-            manifestLoadingMaxRetry: 5,
-            manifestLoadingTimeOut: 10000,
-            fragLoadingTimeOut: 5000,
+            manifestLoadingMaxRetry: 3,
+            manifestLoadingRetryDelay: 1000,
+            manifestLoadingMaxRetryTimeout: 30000,
             xhrSetup: function(xhr) {
                 xhr.withCredentials = false;
+                // CORS header'larını ekleyelim
+                xhr.setRequestHeader('Origin', location.origin);
             }
         });
 
@@ -124,22 +126,22 @@ function initHlsPlayer(url, video, status) {
         
         try {
             const proxyUrl = getProxyUrl(url);
-            console.log('Proxy URL:', proxyUrl);
+            console.log('İlk proxy deneniyor:', proxyUrl);
             
             hls.loadSource(proxyUrl);
             hls.attachMedia(video);
             
             // Hata durumunda diğer proxy'yi dene
             hls.on(Hls.Events.ERROR, (event, data) => {
+                console.error('HLS hatası:', data);
                 if (data.fatal) {
-                    console.error('HLS hatası:', data);
                     const nextProxyUrl = getProxyUrl(url);
                     if (nextProxyUrl !== url) {
                         console.log('Yeni proxy deneniyor:', nextProxyUrl);
                         hls.loadSource(nextProxyUrl);
                     } else {
                         status.className = 'status error';
-                        status.textContent = `HLS Hatası: ${data.type}`;
+                        status.textContent = `HLS Hatası: ${data.details}`;
                     }
                 }
             });
