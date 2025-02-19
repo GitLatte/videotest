@@ -7,8 +7,13 @@ const app = express();
 // CORS ayarları
 app.use(cors());
 
-// Proxy endpoint
-app.get('/proxy', async (req, res) => {
+// Root endpoint
+app.get('/', (req, res) => {
+    res.json({ status: 'Proxy server is running' });
+});
+
+// Proxy endpoint - URL yapısını düzelttik
+app.all('*', async (req, res) => {
     try {
         const url = req.query.url;
         if (!url) {
@@ -17,6 +22,7 @@ app.get('/proxy', async (req, res) => {
 
         // İstek yap
         const response = await fetch(url, {
+            method: req.method,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Accept': '*/*',
