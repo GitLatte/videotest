@@ -82,31 +82,9 @@ function getCustomHeaders() {
 }
 
 function getProxyUrl(url) {
-    const proxyServices = [
-        // Daha güvenilir ve hızlı proxy'ler
-        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-        `https://proxy.yuumari.com/proxy/${encodeURIComponent(url)}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        // Yedek proxy'ler
-        `https://cors.eu.org/${url}`,
-        `https://corsproxy.io/?${encodeURIComponent(url)}`
-    ];
-    
-    let proxyIndex = 0;
-    let lastError = null;
-    
-    function tryNextProxy() {
-        if (proxyIndex >= proxyServices.length) {
-            console.error('Proxy hatası:', lastError);
-            return url;
-        }
-        
-        const proxyUrl = proxyServices[proxyIndex];
-        proxyIndex++;
-        return proxyUrl;
-    }
-    
-    return tryNextProxy();
+    // Vercel proxy sunucumuz
+    const proxyUrl = `https://videotest-sand.vercel.app/api/proxy?url=${encodeURIComponent(url)}`;
+    return proxyUrl;
 }
 
 function initHlsPlayer(url, video, status) {
@@ -119,8 +97,7 @@ function initHlsPlayer(url, video, status) {
             manifestLoadingMaxRetryTimeout: 30000,
             xhrSetup: function(xhr) {
                 xhr.withCredentials = false;
-                // Güvenli header'lar ekleyelim
-                xhr.setRequestHeader('Referer', '');
+                // Sadece güvenli header'lar
                 xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
             }
         });
@@ -129,37 +106,20 @@ function initHlsPlayer(url, video, status) {
         
         try {
             const proxyUrl = getProxyUrl(url);
-            console.log('İlk proxy deneniyor:', proxyUrl);
-            
-            // Önce video'yu yükle, sonra oynat
-            let playAttempted = false;
+            console.log('Proxy deneniyor:', proxyUrl);
             
             hls.loadSource(proxyUrl);
             hls.attachMedia(video);
             
             // Manifest yüklendiğinde
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                console.log('Manifest yüklendi, kalite seviyeleri:', hls.levels);
-                
-                // Kullanıcı etkileşimi gerekiyor
-                const playButton = document.createElement('button');
-                playButton.textContent = 'Oynat';
-                playButton.className = 'play-button';
-                video.parentElement.appendChild(playButton);
-                
-                playButton.onclick = () => {
-                    if (!playAttempted) {
-                        playAttempted = true;
-                        video.play().catch(error => {
-                            console.warn('Oynatma hatası:', error);
-                            status.textContent = 'Oynatma başlatılamadı. Tekrar deneyin.';
-                        });
-                        playButton.remove();
-                    }
-                };
-                
+                console.log('Manifest yüklendi');
                 status.className = 'status success';
-                status.textContent = 'HLS: Yayın hazır! Oynat butonuna tıklayın.';
+                status.textContent = 'HLS: Yayın hazır!';
+                
+                video.play().catch(error => {
+                    console.warn('Oynatma hatası:', error);
+                });
             });
 
             // Hata yönetimi
