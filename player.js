@@ -112,15 +112,16 @@ function getProxyUrl(url) {
 function initHlsPlayer(url, video, status) {
     if (Hls.isSupported()) {
         const hls = new Hls({
-            debug: true, // Hata ayıklama için açalım
+            debug: true,
             enableWorker: true,
             manifestLoadingMaxRetry: 3,
             manifestLoadingRetryDelay: 1000,
             manifestLoadingMaxRetryTimeout: 30000,
             xhrSetup: function(xhr) {
                 xhr.withCredentials = false;
-                xhr.setRequestHeader('Origin', '*');
+                // Güvenli header'lar ekleyelim
                 xhr.setRequestHeader('Referer', '');
+                xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
             }
         });
 
@@ -130,10 +131,38 @@ function initHlsPlayer(url, video, status) {
             const proxyUrl = getProxyUrl(url);
             console.log('İlk proxy deneniyor:', proxyUrl);
             
+            // Önce video'yu yükle, sonra oynat
+            let playAttempted = false;
+            
             hls.loadSource(proxyUrl);
             hls.attachMedia(video);
             
-            // Hata durumunda diğer proxy'yi dene
+            // Manifest yüklendiğinde
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                console.log('Manifest yüklendi, kalite seviyeleri:', hls.levels);
+                
+                // Kullanıcı etkileşimi gerekiyor
+                const playButton = document.createElement('button');
+                playButton.textContent = 'Oynat';
+                playButton.className = 'play-button';
+                video.parentElement.appendChild(playButton);
+                
+                playButton.onclick = () => {
+                    if (!playAttempted) {
+                        playAttempted = true;
+                        video.play().catch(error => {
+                            console.warn('Oynatma hatası:', error);
+                            status.textContent = 'Oynatma başlatılamadı. Tekrar deneyin.';
+                        });
+                        playButton.remove();
+                    }
+                };
+                
+                status.className = 'status success';
+                status.textContent = 'HLS: Yayın hazır! Oynat butonuna tıklayın.';
+            });
+
+            // Hata yönetimi
             hls.on(Hls.Events.ERROR, (event, data) => {
                 console.error('HLS hatası:', data);
                 if (data.fatal) {
@@ -148,23 +177,8 @@ function initHlsPlayer(url, video, status) {
                 }
             });
             
-            // Daha detaylı event izleme
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                console.log('Manifest yüklendi, kalite seviyeleri:', hls.levels);
-                video.play().catch(error => {
-                    console.warn('Otomatik oynatma engellendi:', error);
-                });
-                status.className = 'status success';
-                status.textContent = 'HLS: Yayın başarıyla yüklendi!';
-            });
-
-            hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
-                console.log(`Kalite değişti: ${hls.levels[data.level].height}p`);
-            });
         } catch (error) {
             console.error('HLS başlatma hatası:', error);
-            status.className = 'status error';
-            status.textContent = 'HLS: Başlatma hatası';
         }
     }
 }
