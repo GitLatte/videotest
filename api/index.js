@@ -4,13 +4,10 @@ const fetch = require('node-fetch');
 
 const app = express();
 
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'Range'],
-    exposedHeaders: ['Content-Length', 'Content-Range']
-}));
+// CORS ayarları
+app.use(cors());
 
+// Proxy endpoint
 app.get('/proxy', async (req, res) => {
     try {
         const url = req.query.url;
@@ -18,6 +15,7 @@ app.get('/proxy', async (req, res) => {
             return res.status(400).json({ error: 'URL parametresi gerekli' });
         }
 
+        // İstek yap
         const response = await fetch(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -29,20 +27,25 @@ app.get('/proxy', async (req, res) => {
             }
         });
 
-        // Response header'larını kopyala
-        const headers = response.headers.raw();
-        Object.keys(headers).forEach(key => {
+        // Status code'u ayarla
+        res.status(response.status);
+
+        // Header'ları kopyala
+        for (const [key, value] of response.headers.entries()) {
             if (key.toLowerCase() !== 'content-length') {
-                res.setHeader(key, headers[key]);
+                res.setHeader(key, value);
             }
-        });
+        }
 
         // Stream'i pipe et
-        response.body.pipe(res);
+        return response.body.pipe(res);
 
     } catch (error) {
         console.error('Proxy hatası:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            error: error.message,
+            stack: error.stack
+        });
     }
 });
 
