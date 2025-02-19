@@ -1,0 +1,9 @@
+{
+  "name": "cors-proxy-server",
+  "version": "1.0.0",
+  "dependencies": {
+    "express": "^4.17.1",
+    "cors": "^2.8.5",
+    "node-fetch": "^2.6.1"
+  }
+}
