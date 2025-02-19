@@ -82,24 +82,26 @@ function getCustomHeaders() {
 }
 
 function getProxyUrl(url) {
-    // Daha güvenilir proxy'ler
     const proxyServices = [
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        // Daha güvenilir ve hızlı proxy'ler
         `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-        `https://cors.eu.org/${url}`
+        `https://proxy.yuumari.com/proxy/${encodeURIComponent(url)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        // Yedek proxy'ler
+        `https://cors.eu.org/${url}`,
+        `https://corsproxy.io/?${encodeURIComponent(url)}`
     ];
     
     let proxyIndex = 0;
+    let lastError = null;
     
     function tryNextProxy() {
         if (proxyIndex >= proxyServices.length) {
-            console.error('Hiçbir proxy çalışmadı');
+            console.error('Proxy hatası:', lastError);
             return url;
         }
         
         const proxyUrl = proxyServices[proxyIndex];
-        console.log(`Proxy ${proxyIndex + 1} deneniyor:`, proxyUrl);
         proxyIndex++;
         return proxyUrl;
     }
@@ -117,8 +119,8 @@ function initHlsPlayer(url, video, status) {
             manifestLoadingMaxRetryTimeout: 30000,
             xhrSetup: function(xhr) {
                 xhr.withCredentials = false;
-                // CORS header'larını ekleyelim
-                xhr.setRequestHeader('Origin', location.origin);
+                xhr.setRequestHeader('Origin', '*');
+                xhr.setRequestHeader('Referer', '');
             }
         });
 
