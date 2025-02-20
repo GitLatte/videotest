@@ -303,4 +303,17 @@ window.onbeforeunload = function() {
     if (currentPlayer) {
         cleanupCurrentPlayer();
     }
-}; 
+};
+
+// Sayfa yüklendiğinde URL parametresini kontrol et
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const streamUrl = urlParams.get('url');
+    
+    if (streamUrl) {
+        // URL'i input'a yerleştir
+        document.getElementById('streamUrl').value = streamUrl;
+        // Otomatik olarak testi başlat
+        testStream();
+    }
+}); 
