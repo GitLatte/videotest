@@ -9,6 +9,24 @@
     <!-- Plyr Player -->
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <!-- VideoJS -->
+    <link href="https://vjs.zencdn.net/8.5.2/video-js.css" rel="stylesheet">
+    <script src="https://vjs.zencdn.net/8.5.2/video.min.js"></script>
+    <script src="https://unpkg.com/@videojs/http-streaming@3.5.3/dist/videojs-http-streaming.min.js"></script>
+    <!-- Shaka Player -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.js"></script>
+    <!-- DashJS -->
+    <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+    <!-- JWPlayer (ücretsiz sürüm) -->
+    <script src="https://cdn.jwplayer.com/libraries/IDzF9Zmk.js"></script>
+    <!-- Flowplayer -->
+    <link rel="stylesheet" href="https://releases.flowplayer.org/7.2.7/skin/skin.css">
+    <script src="https://releases.flowplayer.org/7.2.7/flowplayer.min.js"></script>
+    <script src="https://releases.flowplayer.org/hlsjs/flowplayer.hlsjs.min.js"></script>
+    <!-- Clappr -->
+    <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
+    <!-- IVS Player -->
+    <script src="https://player.live-video.net/1.19.0/amazon-ivs-player.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,7 +35,8 @@
             <video id="player" 
                 controls 
                 crossorigin="anonymous"
-                playsinline>
+                playsinline
+                class="video-js vjs-default-skin">
             </video>
         </div>
         
@@ -26,6 +45,13 @@
             <select id="playerType">
                 <option value="hls">HLS.js</option>
                 <option value="plyr">Plyr</option>
+                <option value="videojs">VideoJS</option>
+                <option value="shaka">Shaka Player</option>
+                <option value="dash">DashJS</option>
+                <option value="jwplayer">JWPlayer</option>
+                <option value="flowplayer">Flowplayer</option>
+                <option value="clappr">Clappr</option>
+                <option value="ivs">IVS Player</option>
             </select>
             <button onclick="testStream()">Test Et</button>
         </div>
