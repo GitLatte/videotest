@@ -25,23 +25,20 @@ function testStream() {
         case 'videojs':
             initVideoJSPlayer(url, video, status);
             break;
-        case 'shaka':
-            initShakaPlayer(url, video, status);
-            break;
-        case 'dash':
-            initDashPlayer(url, video, status);
-            break;
         case 'jwplayer':
             initJWPlayer(url, video, status);
             break;
         case 'flowplayer':
             initFlowPlayer(url, video, status);
             break;
-        case 'clappr':
-            initClapprPlayer(url, video, status);
+        case 'mediaelement':
+            initMediaElementPlayer(url, video, status);
             break;
-        case 'ivs':
-            initIVSPlayer(url, video, status);
+        case 'openplayer':
+            initOpenPlayer(url, video, status);
+            break;
+        case 'afterglow':
+            initAfterglowPlayer(url, video, status);
             break;
         default:
             initHlsPlayer(url, video, status);
@@ -166,47 +163,6 @@ function initVideoJSPlayer(url, video, status) {
     });
 }
 
-function initShakaPlayer(url, video, status) {
-    const player = new shaka.Player(video);
-    currentPlayer = player;
-    
-    player.configure({
-        streaming: {
-            bufferingGoal: 30,
-            rebufferingGoal: 15
-        }
-    });
-    
-    const proxyUrl = getProxyUrl(url);
-    player.load(proxyUrl).then(() => {
-        status.className = 'status success';
-        status.textContent = 'Shaka: Yayın başarıyla yüklendi!';
-        video.play();
-    }).catch(error => {
-        status.className = 'status error';
-        status.textContent = `Shaka: Yayın yüklenemedi (${error.message})`;
-        console.error('Shaka error:', error);
-    });
-}
-
-function initDashPlayer(url, video, status) {
-    const player = dashjs.MediaPlayer().create();
-    currentPlayer = player;
-    
-    const proxyUrl = getProxyUrl(url);
-    player.initialize(video, proxyUrl, true);
-    
-    player.on(dashjs.MediaPlayer.events.PLAYBACK_METADATA_LOADED, () => {
-        status.className = 'status success';
-        status.textContent = 'DashJS: Yayın başarıyla yüklendi!';
-    });
-    
-    player.on(dashjs.MediaPlayer.events.ERROR, (error) => {
-        status.className = 'status error';
-        status.textContent = `DashJS: Yayın yüklenemedi (${error.message})`;
-    });
-}
-
 function initJWPlayer(url, video, status) {
     const container = document.createElement('div');
     container.id = 'jwplayer-container';
@@ -262,57 +218,89 @@ function initFlowPlayer(url, video, status) {
     });
 }
 
-function initClapprPlayer(url, video, status) {
-    const container = document.createElement('div');
-    container.id = 'clappr-container';
-    video.parentNode.replaceChild(container, video);
-    
+function initMediaElementPlayer(url, video, status) {
     const proxyUrl = getProxyUrl(url);
-    const player = new Clappr.Player({
-        source: proxyUrl,
-        parentId: '#clappr-container',
-        width: '100%',
-        height: '100%',
-        autoPlay: true
+    
+    const player = new MediaElementPlayer(video, {
+        stretching: 'responsive',
+        hls: {
+            debug: false,
+            enableWorker: true
+        },
+        success: function(mediaElement) {
+            currentPlayer = player;
+            mediaElement.setSrc(proxyUrl);
+            mediaElement.load();
+            
+            mediaElement.addEventListener('loadedmetadata', () => {
+                status.className = 'status success';
+                status.textContent = 'MediaElement: Yayın hazır!';
+                mediaElement.play();
+            });
+            
+            mediaElement.addEventListener('error', (e) => {
+                status.className = 'status error';
+                status.textContent = `MediaElement: Yayın yüklenemedi (${e.message})`;
+            });
+        },
+        error: function(e) {
+            status.className = 'status error';
+            status.textContent = 'MediaElement: Player başlatılamadı';
+        }
+    });
+}
+
+function initOpenPlayer(url, video, status) {
+    const player = new OpenPlayer(video, {
+        mode: 'hls',
+        autoplay: true
     });
     
     currentPlayer = player;
     
-    player.on(Clappr.Events.PLAYER_READY, () => {
+    const proxyUrl = getProxyUrl(url);
+    player.src = proxyUrl;
+    
+    player.on('loadedmetadata', () => {
         status.className = 'status success';
-        status.textContent = 'Clappr: Yayın hazır!';
+        status.textContent = 'OpenPlayer: Yayın hazır!';
+        player.play();
     });
     
-    player.on(Clappr.Events.PLAYER_ERROR, () => {
+    player.on('error', (error) => {
         status.className = 'status error';
-        status.textContent = 'Clappr: Yayın yüklenemedi';
+        status.textContent = `OpenPlayer: Yayın yüklenemedi (${error.message})`;
     });
 }
 
-function initIVSPlayer(url, video, status) {
-    if (IVSPlayer.isPlayerSupported) {
-        const player = IVSPlayer.create();
-        currentPlayer = player;
-        
-        player.attachHTMLVideoElement(video);
-        
-        const proxyUrl = getProxyUrl(url);
-        player.load(proxyUrl);
-        player.play();
-        
-        player.addEventListener(IVSPlayer.PlayerState.PLAYING, () => {
-            status.className = 'status success';
-            status.textContent = 'IVS: Yayın başarıyla yüklendi!';
-        });
-        
-        player.addEventListener(IVSPlayer.PlayerEventType.ERROR, (error) => {
-            status.className = 'status error';
-            status.textContent = `IVS: Yayın yüklenemedi (${error.message})`;
-        });
-    } else {
+function initAfterglowPlayer(url, video, status) {
+    const container = document.createElement('div');
+    container.className = 'afterglow';
+    container.id = 'afterglow-player';
+    video.parentNode.replaceChild(container, video);
+    
+    const proxyUrl = getProxyUrl(url);
+    
+    const player = afterglow.getPlayer('afterglow-player');
+    currentPlayer = player;
+    
+    player.initialize({
+        source: proxyUrl,
+        autoplay: true,
+        streaming: {
+            type: 'hls'
+        }
+    });
+    
+    player.on('ready', () => {
+        status.className = 'status success';
+        status.textContent = 'Afterglow: Yayın hazır!';
+    });
+    
+    player.on('error', (error) => {
         status.className = 'status error';
-        status.textContent = 'IVS Player bu tarayıcıda desteklenmiyor';
-    }
+        status.textContent = `Afterglow: Yayın yüklenemedi (${error.message})`;
+    });
 }
 
 function cleanupCurrentPlayer() {
@@ -324,6 +312,8 @@ function cleanupCurrentPlayer() {
                 currentPlayer.dispose();
             } else if (typeof currentPlayer.remove === 'function') {
                 currentPlayer.remove();
+            } else if (typeof currentPlayer.cleanup === 'function') {
+                currentPlayer.cleanup();
             }
             currentPlayer = null;
         }
