@@ -40,22 +40,13 @@ app.all('/api/proxy', async (req, res) => {
         if (contentType && contentType.includes('application/vnd.apple.mpegurl')) {
             let m3u8Content = await response.text();
             
-            // Mutlak URL'leri proxy üzerinden geçir
-            m3u8Content = m3u8Content.replace(
-                /(https?:\/\/[^"'\s]+\.ts)/g,
-                (match) => `https://videotest-sand.vercel.app/api/proxy?url=${encodeURIComponent(match)}`
-            );
-            
-            // Göreceli URL'leri mutlak URL'e çevir ve proxy üzerinden geçir
+            // URL'leri proxy üzerinden geçir
             const baseUrl = new URL(url).origin;
             m3u8Content = m3u8Content.replace(
                 /([^"'\s]+\.ts)/g,
                 (match) => {
-                    if (!match.startsWith('http')) {
-                        const absoluteUrl = `${baseUrl}/${match}`;
-                        return `https://videotest-sand.vercel.app/api/proxy?url=${encodeURIComponent(absoluteUrl)}`;
-                    }
-                    return match;
+                    const absoluteUrl = match.startsWith('http') ? match : `${baseUrl}/${match}`;
+                    return `https://videotest-sand.vercel.app/api/proxy?url=${encodeURIComponent(absoluteUrl)}`;
                 }
             );
             
@@ -76,10 +67,7 @@ app.all('/api/proxy', async (req, res) => {
 
     } catch (error) {
         console.error('Proxy error:', error);
-        res.status(500).json({ 
-            error: error.message,
-            stack: error.stack
-        });
+        res.status(500).json({ error: error.message });
     }
 });
 
