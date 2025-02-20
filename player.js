@@ -102,10 +102,30 @@ function initHlsPlayer(url, video, status) {
             manifestLoadingMaxRetry: 3,
             manifestLoadingRetryDelay: 1000,
             manifestLoadingMaxRetryTimeout: 30000,
-            xhrSetup: function(xhr) {
-                xhr.withCredentials = false;
-                // Sadece güvenli header'lar
-                xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
+            fragmentLoadingMaxRetry: 3,
+            fragmentLoadingRetryDelay: 1000,
+            fragmentLoadingMaxRetryTimeout: 30000,
+            pLoader: class ProxyLoader extends Hls.DefaultConfig.loader {
+                constructor(config) {
+                    super(config);
+                    const load = this.load.bind(this);
+                    this.load = function(context, config, callbacks) {
+                        const url = context.url;
+                        context.url = getProxyUrl(url);
+                        load(context, config, callbacks);
+                    };
+                }
+            },
+            fLoader: class ProxyLoader extends Hls.DefaultConfig.loader {
+                constructor(config) {
+                    super(config);
+                    const load = this.load.bind(this);
+                    this.load = function(context, config, callbacks) {
+                        const url = context.url;
+                        context.url = getProxyUrl(url);
+                        load(context, config, callbacks);
+                    };
+                }
             }
         });
 
