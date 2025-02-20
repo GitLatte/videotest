@@ -6,23 +6,9 @@
     <title>IPTV Kanal Test</title>
     <!-- HLS.js -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <!-- Shaka Player -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.js"></script>
     <!-- Plyr Player -->
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
-    <!-- DashJS -->
-    <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
-    <!-- VideoJS ve HLS eklentisi -->
-    <link href="https://vjs.zencdn.net/8.5.2/video-js.css" rel="stylesheet">
-    <script src="https://vjs.zencdn.net/8.5.2/video.min.js"></script>
-    <!-- Flowplayer -->
-    <link rel="stylesheet" href="https://releases.flowplayer.org/7.2.7/skin/skin.css">
-    <script src="https://releases.flowplayer.org/7.2.7/flowplayer.min.js"></script>
-    <!-- JWPlayer (ücretsiz sürüm) -->
-    <script src="https://cdn.jwplayer.com/libraries/IDzF9Zmk.js"></script>
-    <!-- IVS Player -->
-    <script src="https://player.live-video.net/1.19.0/amazon-ivs-player.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -31,11 +17,7 @@
             <video id="player" 
                 controls 
                 crossorigin="anonymous"
-                referrerpolicy="no-referrer"
-                x-webkit-airplay="allow"
-                webkit-playsinline
-                playsinline
-                class="video-js vjs-default-skin">
+                playsinline>
             </video>
         </div>
         
@@ -44,7 +26,6 @@
             <select id="playerType">
                 <option value="hls">HLS.js</option>
                 <option value="plyr">Plyr</option>
-                <option value="videojs">VideoJS</option>
             </select>
             <button onclick="testStream()">Test Et</button>
         </div>
