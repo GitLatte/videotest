@@ -30,23 +30,31 @@ app.all('/api/proxy', async (req, res) => {
             }
         });
 
-        // Status code'u ayarla
         res.status(response.status);
         
-        // Content-Type kontrolü
         const contentType = response.headers.get('content-type');
         
-        // Eğer m3u8 dosyasıysa, içeriği modifiye et
+        // M3U8 dosyası için özel işlem
         if (contentType && contentType.includes('application/vnd.apple.mpegurl')) {
             let m3u8Content = await response.text();
             
-            // URL'leri proxy üzerinden geçir
-            const baseUrl = new URL(url).origin;
+            // Base URL'yi al
+            const baseUrl = new URL(url);
+            const basePath = baseUrl.pathname.substring(0, baseUrl.pathname.lastIndexOf('/') + 1);
+            
+            // .ts uzantılı dosyaların URL'lerini düzelt
             m3u8Content = m3u8Content.replace(
-                /([^"'\s]+\.ts)/g,
+                /^([^#].+?\.ts)$/gm,
                 (match) => {
-                    const absoluteUrl = match.startsWith('http') ? match : `${baseUrl}/${match}`;
-                    return `https://videotest-sand.vercel.app/api/proxy?url=${encodeURIComponent(absoluteUrl)}`;
+                    let tsUrl;
+                    if (match.startsWith('http')) {
+                        tsUrl = match;
+                    } else if (match.startsWith('/')) {
+                        tsUrl = `${baseUrl.origin}${match}`;
+                    } else {
+                        tsUrl = `${baseUrl.origin}${basePath}${match}`;
+                    }
+                    return `https://videotest-sand.vercel.app/api/proxy?url=${encodeURIComponent(tsUrl)}`;
                 }
             );
             
@@ -54,7 +62,7 @@ app.all('/api/proxy', async (req, res) => {
             return res.send(m3u8Content);
         }
         
-        // Header'ları kopyala
+        // Diğer dosyalar için header'ları kopyala
         for (const [key, value] of response.headers.entries()) {
             if (key.toLowerCase() !== 'content-encoding' && 
                 key.toLowerCase() !== 'content-length') {
