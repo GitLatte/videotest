@@ -22,9 +22,6 @@ function testStream() {
         case 'plyr':
             initPlyrPlayer(url, video, status);
             break;
-        case 'videojs':
-            initVideoJSPlayer(url, video, status);
-            break;
         case 'jwplayer':
             initJWPlayer(url, video, status);
             break;
@@ -128,39 +125,6 @@ function initPlyrPlayer(url, video, status) {
         
         player.hls = hls;
     } 
-}
-
-function initVideoJSPlayer(url, video, status) {
-    const player = videojs(video, {
-        html5: {
-            hls: {
-                overrideNative: true,
-                enableLowInitialPlaylist: true
-            },
-            nativeVideoTracks: false,
-            nativeAudioTracks: false,
-            nativeTextTracks: false
-        }
-    });
-    
-    currentPlayer = player;
-    
-    const proxyUrl = getProxyUrl(url);
-    player.src({
-        src: proxyUrl,
-        type: 'application/x-mpegURL'
-    });
-    
-    player.on('loadedmetadata', () => {
-        status.className = 'status success';
-        status.textContent = 'VideoJS: Yayın başarıyla yüklendi!';
-        player.play();
-    });
-    
-    player.on('error', () => {
-        status.className = 'status error';
-        status.textContent = `VideoJS: Yayın yüklenemedi (${player.error().message})`;
-    });
 }
 
 function initJWPlayer(url, video, status) {

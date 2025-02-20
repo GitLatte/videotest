@@ -11,11 +11,6 @@
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
     
-    <!-- VideoJS -->
-    <link href="https://vjs.zencdn.net/8.5.2/video-js.css" rel="stylesheet">
-    <script src="https://vjs.zencdn.net/8.5.2/video.min.js"></script>
-    <script src="https://unpkg.com/@videojs/http-streaming@3.5.3/dist/videojs-http-streaming.min.js"></script>
-    
     <!-- JWPlayer (ücretsiz sürüm) -->
     <script src="https://cdn.jwplayer.com/libraries/IDzF9Zmk.js"></script>
     
@@ -43,8 +38,7 @@
             <video id="player" 
                 controls 
                 crossorigin="anonymous"
-                playsinline
-                class="video-js vjs-default-skin">
+                playsinline>
             </video>
         </div>
         
@@ -53,7 +47,6 @@
             <select id="playerType">
                 <option value="hls">HLS.js</option>
                 <option value="plyr">Plyr</option>
-                <option value="videojs">VideoJS</option>
                 <option value="jwplayer">JWPlayer</option>
                 <option value="flowplayer">Flowplayer</option>
                 <option value="mediaelement">MediaElement.js</option>
