@@ -99,11 +99,51 @@ function initHlsPlayer(url, video, status) {
         const hls = new Hls({
             debug: true,
             enableWorker: true,
-            // Temel HLS yapılandırması
-            manifestLoadingMaxRetry: 3,
-            manifestLoadingRetryDelay: 1000,
-            fragmentLoadingMaxRetry: 3,
-            fragmentLoadingRetryDelay: 1000
+            manifestLoadPolicy: {
+                default: {
+                    maxTimeToFirstByteMs: null,
+                    maxLoadTimeMs: 20000,
+                    timeoutRetry: {
+                        maxNumRetry: 3,
+                        retryDelayMs: 1000,
+                        maxRetryDelayMs: 30000
+                    },
+                    errorRetry: {
+                        maxNumRetry: 3,
+                        retryDelayMs: 1000,
+                        maxRetryDelayMs: 30000
+                    }
+                }
+            },
+            // Fragment yükleme ayarları
+            fragLoadPolicy: {
+                default: {
+                    maxTimeToFirstByteMs: null,
+                    maxLoadTimeMs: 120000,
+                    timeoutRetry: {
+                        maxNumRetry: 4,
+                        retryDelayMs: 1000,
+                        maxRetryDelayMs: 30000
+                    },
+                    errorRetry: {
+                        maxNumRetry: 4,
+                        retryDelayMs: 1000,
+                        maxRetryDelayMs: 30000
+                    }
+                }
+            },
+            // URL dönüştürücü
+            pLoader: class ProxyLoader extends Hls.DefaultConfig.loader {
+                constructor(config) {
+                    super(config);
+                    const load = this.load.bind(this);
+                    this.load = function(context, config, callbacks) {
+                        const url = context.url;
+                        context.url = getProxyUrl(url);
+                        load(context, config, callbacks);
+                    };
+                }
+            }
         });
 
         currentPlayer = hls;
