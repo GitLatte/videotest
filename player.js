@@ -83,8 +83,15 @@ function getCustomHeaders() {
 
 function getProxyUrl(url) {
     // Vercel proxy sunucumuz
-    const proxyUrl = `https://videotest-sand.vercel.app/api/proxy?url=${encodeURIComponent(url)}`;
-    return proxyUrl;
+    const proxyBase = 'https://videotest-sand.vercel.app';
+    
+    // Eğer url zaten proxy ile başlıyorsa, tekrar proxy ekleme
+    if (url.startsWith(proxyBase)) {
+        return url;
+    }
+    
+    // URL'yi encode et ve proxy'ye ekle
+    return `${proxyBase}/api/proxy?url=${encodeURIComponent(url)}`;
 }
 
 function initHlsPlayer(url, video, status) {
