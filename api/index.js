@@ -22,13 +22,24 @@ app.all('/api/proxy', async (req, res) => {
 
         console.log('Proxy request for:', url);
 
-        const response = await fetch(url);
-        const contentType = response.headers.get('content-type');
-        
-        // Tüm response header'larını kopyala
-        response.headers.forEach((value, key) => {
-            res.setHeader(key, value);
+        const response = await fetch(url, {
+            headers: {
+                'Accept': '*/*',
+                'Accept-Encoding': 'identity', // Sıkıştırmayı devre dışı bırak
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
         });
+
+        // Status code'u ayarla
+        res.status(response.status);
+        
+        // Header'ları kopyala (content-encoding hariç)
+        for (const [key, value] of response.headers.entries()) {
+            if (key.toLowerCase() !== 'content-encoding' && 
+                key.toLowerCase() !== 'content-length') {
+                res.setHeader(key, value);
+            }
+        }
 
         // Stream response
         response.body.pipe(res);
