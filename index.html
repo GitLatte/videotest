@@ -14,28 +14,49 @@
     <!-- JWPlayer (ücretsiz sürüm) -->
     <script src="https://cdn.jwplayer.com/libraries/IDzF9Zmk.js"></script>
     
-    <!-- Flowplayer -->
-    <link rel="stylesheet" href="https://releases.flowplayer.org/7.2.7/skin/skin.css">
-    <script src="https://releases.flowplayer.org/7.2.7/flowplayer.min.js"></script>
-    <script src="https://releases.flowplayer.org/hlsjs/flowplayer.hlsjs.min.js"></script>
-    
-    <!-- MediaElement.js -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mediaelement/4.2.17/mediaelementplayer.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mediaelement/4.2.17/mediaelement-and-player.min.js"></script>
-    
-    <!-- OpenPlayer -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/openplayerjs@latest/dist/openplayer.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/openplayerjs@latest/dist/openplayer.min.js"></script>
-    
-    <!-- Afterglow -->
-    <script src="https://cdn.jsdelivr.net/npm/afterglowplayer@1.x"></script>
+    <!-- Video.js -->
+    <link href="https://vjs.zencdn.net/8.5.2/video-js.css" rel="stylesheet" />
+    <script src="https://vjs.zencdn.net/8.5.2/video.min.js"></script>
     
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Embedded mod için stiller */
+        body.embedded {
+            padding: 0;
+            margin: 0;
+            background: transparent;
+        }
+        
+        body.embedded .container {
+            margin-top: 0;
+        }
+
+        /* Seçim engelleme stilleri */
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        video {
+            pointer-events: none;
+        }
+
+        .player-container {
+            position: relative;
+        }
+
+        .player-container video {
+            pointer-events: auto;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <div class="player-container">
             <video id="player" 
+                class="video-js vjs-default-skin"
                 controls 
                 crossorigin="anonymous"
                 playsinline>
@@ -48,16 +69,51 @@
                 <option value="hls">HLS.js</option>
                 <option value="plyr">Plyr</option>
                 <option value="jwplayer">JWPlayer</option>
-                <option value="flowplayer">Flowplayer</option>
-                <option value="mediaelement">MediaElement.js</option>
-                <option value="openplayer">OpenPlayer</option>
-                <option value="afterglow">Afterglow</option>
+                <option value="videojs">Video.js</option>
             </select>
-            <button onclick="testStream()">Test Et</button>
+            <button onclick="testStream()">Oynat</button>
         </div>
         
         <div class="status" id="status"></div>
     </div>
     <script src="player.js"></script>
+    <script>
+        // Embedded mod kontrolü ve koruma önlemleri
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('embedded') === 'true') {
+                document.body.classList.add('embedded');
+            }
+
+            // Sağ tık ve klavye kısayollarını engelleme
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+
+            document.addEventListener('keydown', function(e) {
+                // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U
+                if (
+                    e.keyCode === 123 || 
+                    (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) ||
+                    (e.ctrlKey && e.keyCode === 85)
+                ) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // Kaynak görüntülemeyi engelleme
+            document.addEventListener('dragstart', function(e) {
+                e.preventDefault();
+                return false;
+            });
+
+            document.addEventListener('selectstart', function(e) {
+                e.preventDefault();
+                return false;
+            });
+        });
+    </script>
 </body>
-</html> 
+</html>
