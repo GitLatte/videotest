@@ -38,21 +38,39 @@ async function getProxyUrl(url) {
     // Proxy sunucuları öncelik sırasına göre
     const proxyServers = [
         {
-            name: 'AllOrigins',
+            name: 'AllOrigins (Global)',
             base: 'https://api.allorigins.win/raw?url=',
-            urlFormatter: (url) => `${proxyServers[0].base}${encodeURIComponent(url)}`
+            urlFormatter: (url) => `${proxyServers[0].base}${encodeURIComponent(url)}`,
+            location: 'Global'
         },
         {
-            name: 'CORS.SH',
+            name: 'CORS.SH (USA)',
             base: 'https://cors.sh/',
-            urlFormatter: (url) => `${proxyServers[1].base}${url}`
+            urlFormatter: (url) => `${proxyServers[1].base}${url}`,
+            location: 'USA'
         },
         {
-            name: 'CORS Bridge',
+            name: 'CORS Bridge (EU)',
             base: 'https://api.codetabs.com/v1/proxy?quest=',
-            urlFormatter: (url) => `${proxyServers[2].base}${encodeURIComponent(url)}`
+            urlFormatter: (url) => `${proxyServers[2].base}${encodeURIComponent(url)}`,
+            location: 'EU'
+        },
+        {
+            name: 'CroxyProxy (Asia)',
+            base: 'https://www.croxyproxy.com/proxy?url=',
+            urlFormatter: (url) => `${proxyServers[3].base}${encodeURIComponent(url)}`,
+            location: 'Asia'
+        },
+        {
+            name: 'Webshare (UK)',
+            base: 'https://proxy.webshare.io/proxy?url=',
+            urlFormatter: (url) => `${proxyServers[4].base}${encodeURIComponent(url)}`,
+            location: 'UK'
         }
     ];
+    
+    // Seçili lokasyonu al
+    const selectedLocation = document.getElementById('proxyLocation')?.value || 'Global';
     
     // URL zaten proxy ile başlıyorsa direkt döndür
     if (proxyServers.some(server => url.startsWith(server.base))) {
@@ -70,8 +88,18 @@ async function getProxyUrl(url) {
         throw new Error('Geçersiz stream URL adresi');
     }
     
-    // Proxy sunucularını sırayla dene
-    for (const server of proxyServers) {
+    // Seçili lokasyona göre proxy sunucularını filtrele ve sırala
+    const filteredServers = selectedLocation === 'Global' 
+        ? proxyServers 
+        : proxyServers.filter(server => server.location === selectedLocation);
+
+    if (filteredServers.length === 0) {
+        console.warn(`${selectedLocation} lokasyonu için uygun proxy bulunamadı, global proxy'ler kullanılacak`);
+        filteredServers.push(...proxyServers);
+    }
+
+    // Filtrelenmiş proxy sunucularını sırayla dene
+    for (const server of filteredServers) {
         try {
             const proxyUrl = server.urlFormatter(url);
             // Test et - timeout ekle
@@ -86,7 +114,7 @@ async function getProxyUrl(url) {
             clearTimeout(timeoutId);
             
             if (response.ok) {
-                console.log(`${server.name} proxy başarıyla bağlandı`);
+                console.log(`${server.name} proxy başarıyla bağlandı (${server.location})`);
                 return proxyUrl;
             }
         } catch (error) {
