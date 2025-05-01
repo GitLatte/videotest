@@ -38,19 +38,14 @@ async function getProxyUrl(url) {
     // Proxy sunucuları öncelik sırasına göre
     const proxyServers = [
         {
-            name: 'CloudFlare',
-            base: 'https://corsproxy.io/',
-            urlFormatter: (url) => `${proxyServers[0].base}?${encodeURIComponent(url)}`
-        },
-        {
-            name: 'AllOrigins',
-            base: 'https://api.allorigins.win/raw',
-            urlFormatter: (url) => `${proxyServers[1].base}?url=${encodeURIComponent(url)}`
+            name: 'CORS Bridge',
+            base: 'https://api.codetabs.com/v1/proxy?quest=',
+            urlFormatter: (url) => `${proxyServers[3].base}${encodeURIComponent(url)}`
         },
         {
             name: 'CORS Anywhere',
             base: 'https://cors-anywhere.herokuapp.com',
-            urlFormatter: (url) => `${proxyServers[2].base}/${url}`
+            urlFormatter: (url) => `${proxyServers[4].base}/${url}`
         }
     ];
     
@@ -59,32 +54,58 @@ async function getProxyUrl(url) {
         return url;
     }
     
+    // Stream URL'sini doğrula
+    try {
+        const urlObj = new URL(url);
+        if (!urlObj.protocol.startsWith('http')) {
+            throw new Error('Geçersiz URL protokolü');
+        }
+    } catch (error) {
+        console.error('Geçersiz stream URL adresi:', error);
+        throw new Error('Geçersiz stream URL adresi');
+    }
+    
     // Proxy sunucularını sırayla dene
     for (const server of proxyServers) {
         try {
             const proxyUrl = server.urlFormatter(url);
-            // Test et
-            const response = await fetch(proxyUrl, { method: 'HEAD' });
+            // Test et - timeout ekle
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 saniye timeout
+            
+            const response = await fetch(proxyUrl, { 
+                method: 'HEAD',
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
             if (response.ok) {
                 console.log(`${server.name} proxy başarıyla bağlandı`);
                 return proxyUrl;
             }
         } catch (error) {
-            console.warn(`${server.name} proxy bağlantı hatası:`, error);
+            if (error.name === 'AbortError') {
+                console.warn(`${server.name} proxy timeout`);
+            } else {
+                console.warn(`${server.name} proxy bağlantı hatası:`, error);
+            }
             continue;
         }
     }
     
-    // Hiçbir proxy çalışmıyorsa orijinal URL'yi döndür ve uyarı ver
-    console.warn('Hiçbir proxy sunucusuna bağlanılamadı, orijinal URL kullanılıyor');
-    return url;
+    // Hiçbir proxy çalışmıyorsa hata fırlat
+    throw new Error('Hiçbir proxy sunucusuna bağlanılamadı');
 }
 
 async function initHlsPlayer(url, video, status) {
     if (Hls.isSupported()) {
         const hls = new Hls({
             debug: false,
-            enableWorker: true
+            enableWorker: true,
+            xhrSetup: function(xhr, url) {
+                xhr.timeout = 10000; // 10 saniye timeout
+            }
         });
 
         currentPlayer = hls;
@@ -97,7 +118,18 @@ async function initHlsPlayer(url, video, status) {
             hls.loadSource(proxyUrl);
             hls.attachMedia(video);
             
+            let manifestParsed = false;
+            let timeoutId = setTimeout(() => {
+                if (!manifestParsed) {
+                    status.className = 'status error';
+                    status.textContent = 'HLS: Manifest yüklenemedi - Zaman aşımı';
+                    cleanupCurrentPlayer();
+                }
+            }, 15000); // 15 saniye manifest timeout
+            
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                clearTimeout(timeoutId);
+                manifestParsed = true;
                 status.className = 'status success';
                 status.textContent = 'HLS: Yayın hazır';
                 video.play().catch(error => {
@@ -109,15 +141,32 @@ async function initHlsPlayer(url, video, status) {
                 console.error('HLS hatası:', data);
                 if (data.fatal) {
                     status.className = 'status error';
-                    status.textContent = `HLS Hatası: Yayın yüklenemedi (${data.details})`;
-                    cleanupCurrentPlayer(); // Hata durumunda temizle
+                    let errorMessage = 'HLS: ';
+                    switch(data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+                            errorMessage += 'Ağ bağlantı hatası';
+                            break;
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+                            errorMessage += 'Medya yürütme hatası';
+                            break;
+                        default:
+                            errorMessage += `Yayın yüklenemedi (${data.details})`;
+                    }
+                    status.textContent = errorMessage;
+                    cleanupCurrentPlayer();
                 }
             });
             
         } catch (error) {
             console.error('HLS başlatma hatası:', error);
             status.className = 'status error';
-            status.textContent = 'HLS: Yayın başlatılamadı';
+            if (error.message === 'Hiçbir proxy sunucusuna bağlanılamadı') {
+                status.textContent = 'HLS: Proxy sunucularına erişilemiyor';
+            } else if (error.message === 'Geçersiz stream URL\'si') {
+                status.textContent = 'HLS: Geçersiz yayın adresi';
+            } else {
+                status.textContent = 'HLS: Yayın başlatılamadı';
+            }
             cleanupCurrentPlayer();
         }
     } else {
@@ -138,24 +187,56 @@ async function initPlyrPlayer(url, video, status) {
         const proxyUrl = await getProxyUrl(url);
         video.src = proxyUrl;
         
+        let loadTimeout = setTimeout(() => {
+            status.className = 'status error';
+            status.textContent = 'Plyr: Yayın yüklenemedi - Zaman aşımı';
+            cleanupCurrentPlayer();
+        }, 15000); // 15 saniye yükleme timeout
+        
         video.addEventListener('loadedmetadata', () => {
+            clearTimeout(loadTimeout);
             status.className = 'status success';
             status.textContent = 'Plyr: Yayın hazır';
             video.play().catch(error => {
                 console.warn('Autoplay prevented:', error);
+                status.textContent = 'Plyr: Otomatik oynatma engellendi';
             });
         });
         
-        video.addEventListener('error', () => {
+        video.addEventListener('error', (e) => {
+            clearTimeout(loadTimeout);
             status.className = 'status error';
-            status.textContent = 'Plyr: Yayın yüklenemedi';
+            let errorMessage = 'Plyr: ';
+            switch(e.target.error.code) {
+                case MediaError.MEDIA_ERR_ABORTED:
+                    errorMessage += 'Yayın durduruldu';
+                    break;
+                case MediaError.MEDIA_ERR_NETWORK:
+                    errorMessage += 'Ağ bağlantı hatası';
+                    break;
+                case MediaError.MEDIA_ERR_DECODE:
+                    errorMessage += 'Medya çözümleme hatası';
+                    break;
+                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                    errorMessage += 'Yayın formatı desteklenmiyor';
+                    break;
+                default:
+                    errorMessage += 'Yayın yüklenemedi';
+            }
+            status.textContent = errorMessage;
             cleanupCurrentPlayer();
         });
         
     } catch (error) {
         console.error('Plyr başlatma hatası:', error);
         status.className = 'status error';
-        status.textContent = 'Plyr: Yayın başlatılamadı';
+        if (error.message === 'Hiçbir proxy sunucusuna bağlanılamadı') {
+            status.textContent = 'Plyr: Proxy sunucularına erişilemiyor';
+        } else if (error.message === 'Geçersiz stream URL\'si') {
+            status.textContent = 'Plyr: Geçersiz yayın adresi';
+        } else {
+            status.textContent = 'Plyr: Yayın başlatılamadı';
+        }
         cleanupCurrentPlayer();
     }
 }
