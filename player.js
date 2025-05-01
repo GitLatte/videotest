@@ -1,6 +1,6 @@
 let currentPlayer = null;
 
-function testStream() {
+async function testStream() {
     const url = document.getElementById('streamUrl').value;
     const playerType = document.getElementById('playerType').value;
     const status = document.getElementById('status');
@@ -20,47 +20,67 @@ function testStream() {
     
     switch(playerType) {
         case 'plyr':
-            initPlyrPlayer(url, video, status);
+            await initPlyrPlayer(url, video, status);
             break;
         case 'jwplayer':
-            initJWPlayer(url, video, status);
+            await initJWPlayer(url, video, status);
             break;
         case 'videojs':
-            initVideoJsPlayer(url, video, status);
+            await initVideoJsPlayer(url, video, status);
             break;
 
         default:
-            initHlsPlayer(url, video, status);
+            await initHlsPlayer(url, video, status);
     }
 }
 
-function getProxyUrl(url) {
-    // Birincil proxy sunucusu
-    const primaryProxyBase = 'https://video-proxy-test.onrender.com';
-    // Yedek proxy sunucuları
-    const backupProxyBases = [
-        'https://cors-anywhere.herokuapp.com',
-        'https://api.allorigins.win/raw?url='
+async function getProxyUrl(url) {
+    // Proxy sunucuları öncelik sırasına göre
+    const proxyServers = [
+        {
+            name: 'CloudFlare',
+            base: 'https://corsproxy.io/',
+            urlFormatter: (url) => `${proxyServers[0].base}?${encodeURIComponent(url)}`
+        },
+        {
+            name: 'AllOrigins',
+            base: 'https://api.allorigins.win/raw',
+            urlFormatter: (url) => `${proxyServers[1].base}?url=${encodeURIComponent(url)}`
+        },
+        {
+            name: 'CORS Anywhere',
+            base: 'https://cors-anywhere.herokuapp.com',
+            urlFormatter: (url) => `${proxyServers[2].base}/${url}`
+        }
     ];
     
     // URL zaten proxy ile başlıyorsa direkt döndür
-    if (url.startsWith(primaryProxyBase) || backupProxyBases.some(base => url.startsWith(base))) {
+    if (proxyServers.some(server => url.startsWith(server.base))) {
         return url;
     }
     
     // Proxy sunucularını sırayla dene
-    try {
-        // İlk olarak birincil proxy'yi dene
-        return `${primaryProxyBase}/proxy?url=${encodeURIComponent(url)}`;
-    } catch (error) {
-        console.warn('Birincil proxy sunucusuna erişilemedi, yedek sunucular deneniyor...');
-        // Yedek proxy sunucularından birini rastgele seç
-        const backupProxy = backupProxyBases[Math.floor(Math.random() * backupProxyBases.length)];
-        return `${backupProxy}${encodeURIComponent(url)}`;
+    for (const server of proxyServers) {
+        try {
+            const proxyUrl = server.urlFormatter(url);
+            // Test et
+            const response = await fetch(proxyUrl, { method: 'HEAD' });
+            if (response.ok) {
+                console.log(`${server.name} proxy başarıyla bağlandı`);
+                return proxyUrl;
+            }
+        } catch (error) {
+            console.warn(`${server.name} proxy bağlantı hatası:`, error);
+            continue;
+        }
     }
+    
+    // Hiçbir proxy çalışmıyorsa orijinal URL'yi döndür ve uyarı ver
+    console.warn('Hiçbir proxy sunucusuna bağlanılamadı, orijinal URL kullanılıyor');
+    return url;
 }
 
-function initHlsPlayer(url, video, status) {
+async function initHlsPlayer(url, video, status) {
     if (Hls.isSupported()) {
         const hls = new Hls({
             debug: false,
@@ -71,7 +91,7 @@ function initHlsPlayer(url, video, status) {
         window.currentHls = hls; // Global referans için kaydet
         
         try {
-            const proxyUrl = getProxyUrl(url);
+            const proxyUrl = await getProxyUrl(url);
             console.log('Stream yükleniyor:', proxyUrl);
             
             hls.loadSource(proxyUrl);
@@ -106,7 +126,7 @@ function initHlsPlayer(url, video, status) {
     }
 }
 
-function initPlyrPlayer(url, video, status) {
+async function initPlyrPlayer(url, video, status) {
     const player = new Plyr(video, {
         controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
         autoplay: true
@@ -115,7 +135,7 @@ function initPlyrPlayer(url, video, status) {
     currentPlayer = player;
     
     try {
-        const proxyUrl = getProxyUrl(url);
+        const proxyUrl = await getProxyUrl(url);
         video.src = proxyUrl;
         
         video.addEventListener('loadedmetadata', () => {
@@ -140,14 +160,14 @@ function initPlyrPlayer(url, video, status) {
     }
 }
 
-function initJWPlayer(url, video, status) {
+async function initJWPlayer(url, video, status) {
     const container = document.createElement('div');
     container.id = 'jwplayer-container';
     if (video.parentNode) {
         video.parentNode.replaceChild(container, video);
         
         try {
-            const proxyUrl = getProxyUrl(url);
+            const proxyUrl = await getProxyUrl(url);
             const player = jwplayer('jwplayer-container').setup({
                 file: proxyUrl,
                 width: '100%',
@@ -180,7 +200,7 @@ function initJWPlayer(url, video, status) {
     }
 }
 
-function initVideoJsPlayer(url, video, status) {
+async function initVideoJsPlayer(url, video, status) {
     try {
         const player = videojs('player', {
             controls: true,
@@ -190,7 +210,7 @@ function initVideoJsPlayer(url, video, status) {
         
         currentPlayer = player;
         
-        const proxyUrl = getProxyUrl(url);
+        const proxyUrl = await getProxyUrl(url);
         player.src({
             src: proxyUrl,
             type: 'application/x-mpegURL'
