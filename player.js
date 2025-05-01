@@ -39,7 +39,7 @@ async function getProxyUrl(url) {
     const proxyServers = [
         {
             name: 'AllOrigins (Global)',
-            base: 'https://api.codetabs.com/v1/proxy?quest=',
+            base: 'https://api.allorigins.win/raw?url=',
             urlFormatter: (url) => `${proxyServers[0].base}${encodeURIComponent(url)}`,
             location: 'Global',
             headers: {}
@@ -180,7 +180,7 @@ async function initHlsPlayer(url, video, status) {
         
         try {
             const proxyUrl = await getProxyUrl(url);
-            console.log('Stream yükleniyor:', proxyUrl);
+            console.log(`Seçilen proxy: ${proxyUrl}`);
             
             hls.loadSource(proxyUrl);
             hls.attachMedia(video);
