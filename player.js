@@ -38,14 +38,19 @@ async function getProxyUrl(url) {
     // Proxy sunucuları öncelik sırasına göre
     const proxyServers = [
         {
-            name: 'CORS Bridge',
-            base: 'https://api.codetabs.com/v1/proxy?quest=',
-            urlFormatter: (url) => `${proxyServers[3].base}${encodeURIComponent(url)}`
+            name: 'AllOrigins',
+            base: 'https://api.allorigins.win/raw?url=',
+            urlFormatter: (url) => `${proxyServers[0].base}${encodeURIComponent(url)}`
         },
         {
-            name: 'CORS Anywhere',
-            base: 'https://cors-anywhere.herokuapp.com',
-            urlFormatter: (url) => `${proxyServers[4].base}/${url}`
+            name: 'CORS.SH',
+            base: 'https://cors.sh/',
+            urlFormatter: (url) => `${proxyServers[1].base}${url}`
+        },
+        {
+            name: 'CORS Bridge',
+            base: 'https://api.codetabs.com/v1/proxy?quest=',
+            urlFormatter: (url) => `${proxyServers[2].base}${encodeURIComponent(url)}`
         }
     ];
     
