@@ -39,7 +39,7 @@ async function getProxyUrl(url) {
     const proxyServers = [
         {
             name: 'AllOrigins (Global)',
-            base: 'https://api.allorigins.win/raw?url=',
+            base: 'https://api.codetabs.com/v1/proxy?quest=',
             urlFormatter: (url) => `${proxyServers[0].base}${encodeURIComponent(url)}`,
             location: 'Global',
             headers: {}
