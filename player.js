@@ -35,13 +35,13 @@ function testStream() {
 }
 
 function getProxyUrl(url) {
-    const proxyBase = 'https://videotest-sand.vercel.app';
+    const proxyBase = 'https://video-proxy-test.onrender.com';
     
     if (url.startsWith(proxyBase)) {
         return url;
     }
     
-    return `${proxyBase}/api/proxy?url=${encodeURIComponent(url)}`;
+    return `${proxyBase}/proxy?url=${encodeURIComponent(url)}`;
 }
 
 function initHlsPlayer(url, video, status) {
