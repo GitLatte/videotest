@@ -35,13 +35,29 @@ function testStream() {
 }
 
 function getProxyUrl(url) {
-    const proxyBase = 'https://video-proxy-test.onrender.com';
+    // Birincil proxy sunucusu
+    const primaryProxyBase = 'https://video-proxy-test.onrender.com';
+    // Yedek proxy sunucuları
+    const backupProxyBases = [
+        'https://cors-anywhere.herokuapp.com',
+        'https://api.allorigins.win/raw?url='
+    ];
     
-    if (url.startsWith(proxyBase)) {
+    // URL zaten proxy ile başlıyorsa direkt döndür
+    if (url.startsWith(primaryProxyBase) || backupProxyBases.some(base => url.startsWith(base))) {
         return url;
     }
     
-    return `${proxyBase}/proxy?url=${encodeURIComponent(url)}`;
+    // Proxy sunucularını sırayla dene
+    try {
+        // İlk olarak birincil proxy'yi dene
+        return `${primaryProxyBase}/proxy?url=${encodeURIComponent(url)}`;
+    } catch (error) {
+        console.warn('Birincil proxy sunucusuna erişilemedi, yedek sunucular deneniyor...');
+        // Yedek proxy sunucularından birini rastgele seç
+        const backupProxy = backupProxyBases[Math.floor(Math.random() * backupProxyBases.length)];
+        return `${backupProxy}${encodeURIComponent(url)}`;
+    }
 }
 
 function initHlsPlayer(url, video, status) {
