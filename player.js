@@ -41,36 +41,45 @@ async function getProxyUrl(url) {
             name: 'AllOrigins (Global)',
             base: 'https://api.allorigins.win/raw?url=',
             urlFormatter: (url) => `${proxyServers[0].base}${encodeURIComponent(url)}`,
-            location: 'Global'
+            location: 'Global',
+            headers: {}
         },
         {
             name: 'CORS.SH (USA)',
             base: 'https://cors.sh/',
             urlFormatter: (url) => `${proxyServers[1].base}${url}`,
-            location: 'USA'
+            location: 'USA',
+            headers: {
+                'x-cors-grida-api-key': 'free',
+                'x-requested-with': 'XMLHttpRequest'
+            }
         },
         {
             name: 'CORS Bridge (EU)',
             base: 'https://api.codetabs.com/v1/proxy?quest=',
             urlFormatter: (url) => `${proxyServers[2].base}${encodeURIComponent(url)}`,
-            location: 'EU'
+            location: 'EU',
+            headers: {}
         },
         {
             name: 'CroxyProxy (Asia)',
             base: 'https://www.croxyproxy.com/proxy?url=',
             urlFormatter: (url) => `${proxyServers[3].base}${encodeURIComponent(url)}`,
-            location: 'Asia'
+            location: 'Asia',
+            headers: {}
         },
         {
             name: 'Webshare (UK)',
             base: 'https://proxy.webshare.io/proxy?url=',
             urlFormatter: (url) => `${proxyServers[4].base}${encodeURIComponent(url)}`,
-            location: 'UK'
+            location: 'UK',
+            headers: {}
         }
     ];
     
     // Seçili lokasyonu al
     const selectedLocation = document.getElementById('proxyLocation')?.value || 'Global';
+    console.log('Seçili proxy lokasyonu:', selectedLocation);
     
     // URL zaten proxy ile başlıyorsa direkt döndür
     if (proxyServers.some(server => url.startsWith(server.base))) {
@@ -89,25 +98,33 @@ async function getProxyUrl(url) {
     }
     
     // Seçili lokasyona göre proxy sunucularını filtrele ve sırala
-    const filteredServers = selectedLocation === 'Global' 
-        ? proxyServers 
-        : proxyServers.filter(server => server.location === selectedLocation);
-
-    if (filteredServers.length === 0) {
-        console.warn(`${selectedLocation} lokasyonu için uygun proxy bulunamadı, global proxy'ler kullanılacak`);
-        filteredServers.push(...proxyServers);
+    let filteredServers = [];
+    if (selectedLocation === 'Global') {
+        filteredServers = [...proxyServers];
+    } else {
+        // Önce seçili lokasyondaki sunucuları ekle
+        filteredServers.push(...proxyServers.filter(server => server.location === selectedLocation));
+        // Sonra Global sunucuları yedek olarak ekle
+        if (filteredServers.length === 0) {
+            console.warn(`${selectedLocation} lokasyonu için uygun proxy bulunamadı, global proxy'ler kullanılacak`);
+            filteredServers.push(...proxyServers.filter(server => server.location === 'Global'));
+        }
     }
 
-    // Filtrelenmiş proxy sunucularını sırayla dene
-    for (const server of filteredServers) {
+    // Proxy test fonksiyonu
+    async function testProxy(server, url) {
+        const proxyUrl = server.urlFormatter(url);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 saniye timeout
+        
         try {
-            const proxyUrl = server.urlFormatter(url);
-            // Test et - timeout ekle
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 saniye timeout
-            
             const response = await fetch(proxyUrl, { 
                 method: 'HEAD',
+                headers: {
+                    ...server.headers,
+                    'Origin': window.location.origin
+                },
+                mode: 'cors',
                 signal: controller.signal
             });
             
@@ -117,18 +134,35 @@ async function getProxyUrl(url) {
                 console.log(`${server.name} proxy başarıyla bağlandı (${server.location})`);
                 return proxyUrl;
             }
+            
+            console.warn(`${server.name} proxy yanıt kodu: ${response.status}`);
+            return null;
         } catch (error) {
+            clearTimeout(timeoutId);
             if (error.name === 'AbortError') {
-                console.warn(`${server.name} proxy timeout`);
+                console.warn(`${server.name} proxy timeout (${server.location})`);
             } else {
-                console.warn(`${server.name} proxy bağlantı hatası:`, error);
+                console.warn(`${server.name} proxy bağlantı hatası (${server.location}):`, error);
             }
-            continue;
+            return null;
+        }
+    }
+
+    // Tüm proxy'leri paralel olarak test et
+    const proxyTests = filteredServers.map(server => testProxy(server, url));
+    const results = await Promise.allSettled(proxyTests);
+    
+    // Başarılı olan ilk proxy'yi bul
+    for (let i = 0; i < results.length; i++) {
+        if (results[i].status === 'fulfilled' && results[i].value) {
+            return results[i].value;
         }
     }
     
-    // Hiçbir proxy çalışmıyorsa hata fırlat
-    throw new Error('Hiçbir proxy sunucusuna bağlanılamadı');
+    // Hiçbir proxy çalışmıyorsa detaylı hata mesajı oluştur
+    const errorMessage = `${selectedLocation} lokasyonundaki proxy sunucularına erişilemiyor`;
+    console.error(errorMessage);
+    throw new Error(errorMessage);
 }
 
 async function initHlsPlayer(url, video, status) {
